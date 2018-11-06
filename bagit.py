@@ -98,7 +98,8 @@ def make_bag(bag_dir, bag_info=None, processes=1):
             temp_data = tempfile.mkdtemp(dir=os.getcwd())
 
             for f in os.listdir('.'):
-                if os.path.abspath(f) == temp_data: continue
+                if os.path.abspath(f) == temp_data:
+                    continue
                 new_f = os.path.join(temp_data, f)
                 logging.info("moving {0} to {1}".format(f, new_f))
                 os.rename(f, new_f)
@@ -212,7 +213,7 @@ class Bag(object):
             files_in_manifest = files_in_manifest | set(self.missing_optional_tagfiles())
 
         return (list(files_in_manifest - files_on_fs),
-             list(files_on_fs - files_in_manifest))
+                list(files_on_fs - files_in_manifest))
 
     def compare_fetch_with_fs(self):
         """Compares the fetch entries with the files actually
@@ -271,16 +272,16 @@ class Bag(object):
 
     def files_to_be_fetched(self):
         for f, size, path in self.fetch_entries():
-            yield f 
+            yield f
 
     def has_oxum(self):
         return 'Payload-Oxum' in self.info
 
     def validate(self, fast=False):
-        """Checks the structure and contents are valid. If you supply 
-        the parameter fast=True the Payload-Oxum (if present) will 
-        be used to check that the payload files are present and 
-        accounted for, instead of re-calculating fixities and 
+        """Checks the structure and contents are valid. If you supply
+        the parameter fast=True the Payload-Oxum (if present) will
+        be used to check that the payload files are present and
+        accounted for, instead of re-calculating fixities and
         comparing them against the manifest. By default validate()
         will re-calculate fixities (fast=False).
         """
@@ -357,7 +358,7 @@ class Bag(object):
     def _validate_structure_tag_files(self):
         # Note: we deviate somewhat from v0.96 of the spec in that it allows
         # other files and directories to be present in the base directory
-        # see 
+        # see
         if len(list(self.manifest_files())) == 0:
             raise BagValidationError("Missing manifest file")
         if "bagit.txt" not in os.listdir(self.path):
@@ -480,7 +481,7 @@ class Bag(object):
 
         f = open(full_path, 'rb')
 
-        f_size = os.stat(full_path).st_size
+#        f_size = os.stat(full_path).st_size
 
         while True:
             block = f.read(1048576)
@@ -611,13 +612,13 @@ def _make_manifest(manifest_file, data_dir, processes):
         checksums = list(map(_manifest_line, _walk(data_dir)))
 
     with open(manifest_file, 'w', encoding='utf8') as manifest:
-      num_files = 0
-      total_bytes = 0
+        num_files = 0
+        total_bytes = 0
 
-      for digest, filename, bytes in checksums:
-          num_files += 1
-          total_bytes += bytes
-          manifest.write("{0}  {1}\n".format(digest, filename))
+        for digest, filename, bytes in checksums:
+            num_files += 1
+            total_bytes += bytes
+            manifest.write("{0}  {1}\n".format(digest, filename))
     return "{0}.{1}".format(total_bytes, num_files)
 
 def _walk(data_dir):
@@ -738,7 +739,7 @@ if __name__ == '__main__':
 
         # make the bag
         else:
-            make_bag(bag_dir, bag_info=opt_parser.bag_info, 
+            make_bag(bag_dir, bag_info=opt_parser.bag_info,
                      processes=opts.processes)
 
         sys.exit(rc)
