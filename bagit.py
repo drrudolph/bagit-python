@@ -35,7 +35,7 @@ import os
 import sys
 import hashlib
 import logging
-import optparse
+import argparse
 import multiprocessing
 import codecs
 import tempfile
@@ -441,7 +441,7 @@ class Bag():
 
             try:
                 f_hashes = self._calculate_file_hashes(full_path, f_hashers)
-            except BagValidationError as e:
+            except BagValidationError as error:
                 f_hashes = dict()  # continue with no hashes
             # Any unhandled exceptions are probably fatal
             except:
@@ -671,29 +671,43 @@ def _manifest_line(filename):
 
 # following code is used for command line program
 
-class BagOptionParser(optparse.OptionParser):
+class BagOptionParser(argparse.ArgumentParser):
     def __init__(self, *args, **opts):
         self.bag_info = {}
-        optparse.OptionParser.__init__(self, *args, **opts)
+#        optparse.OptionParser.__init__(self, *args, **opts)
+        argparse.ArgumentParser(self, *args)
 
-def _bag_info_store(option, opt, value, parser):
-    opt = opt.lstrip('--')
-    opt_caps = '-'.join([o.capitalize() for o in opt.split('-')])
-    parser.bag_info[opt_caps] = value
+
+#def _bag_info_store(option, opt, value, parser):
+class _bag_info_store(argparse.Action):
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        print('%r %r %r' % (namespace, values, option_string))
+        setattr(namespace, self.dest, values)
+        #TODO
+#    opt = opt.lstrip('--')
+#    opt_caps = '-'.join([o.capitalize() for o in opt.split('-')])
+#        parser.bag_info[opt_caps] = value
+
 
 def _make_opt_parser():
-    parser = BagOptionParser(usage='usage: %prog [options] dir1 dir2 ...')
-    parser.add_option('--processes', action='store', type="int",
-                      dest='processes', default=1,
-                      help='parallelize checksums generation')
-    parser.add_option('--log', action='store', dest='log')
-    parser.add_option('--quiet', action='store_true', dest='quiet')
-    parser.add_option('--validate', action='store_true', dest='validate')
-    parser.add_option('--fast', action='store_true', dest='fast')
+#    parser = BagOptionParser(description='bagit')
+    parser = argparse.ArgumentParser()
+    # usage='usage: %prog [options] dir1 dir2 ...')
+    parser.add_argument('dir', action='store', type=str, nargs='+')
+    parser.add_argument('--processes', action='store', type=int,
+                        dest='processes', default=1,
+                        help='parallelize checksums generation')
+    parser.add_argument('--log', action='store', dest='log')
+    parser.add_argument('--quiet', action='store_true', dest='quiet')
+    parser.add_argument('--validate', action='store_true', dest='validate',
+                        help='validate checksums for bag')
+    parser.add_argument('--fast', action='store_true', dest='fast')
+#    parser.add_argument('--zip', action='store_true', dest='zip')
 
     for header in _BAG_INFO_HEADERS:
-        parser.add_option('--{0}'.format(header.lower()), type="string",
-                          action='callback', callback=_bag_info_store)
+        parser.add_argument('--{0}'.format(header.lower()),
+                            action=_bag_info_store)
     return parser
 
 def _configure_logging(opts):
@@ -716,31 +730,32 @@ def isdir(path):
     return os.path.isdir(path)
 
 if __name__ == '__main__':
-    opt_parser = _make_opt_parser()
-    opts, args = opt_parser.parse_args()
-    _configure_logging(opts)
+    arg_parser = _make_opt_parser()
+#    opts, args = arg_parser.parse_args()
+    args = arg_parser.parse_args()
+#    _configure_logging(opts)
     log = logging.getLogger()
 
     rc = 0
     for bag_dir in args:
 
         # validate the bag
-        if opts.validate:
+        if args.validate:
             try:
                 bag = Bag(bag_dir)
                 # validate throws a BagError or BagValidationError
-                valid = bag.validate(fast=opts.fast)
-                if opts.fast:
+                valid = bag.validate(fast=args['fast'])
+                if args['fast']:
                     log.info("{0} valid according to Payload-Oxum".format(bag_dir))
                 else:
                     log.info("{0} is valid".format(bag_dir))
-            except BagError as e:
-                log.info("{0} is invalid: {1}".format(bag_dir, e))
+            except BagError as error:
+                log.info("{0} is invalid: {1}".format(bag_dir, error))
                 rc = 1
 
         # make the bag
         else:
-            make_bag(bag_dir, bag_info=opt_parser.bag_info,
-                     processes=opts.processes)
+            make_bag(bag_dir, bag_info=arg_parser.bag_info,
+                     processes=args['processes'])
 
         sys.exit(rc)
